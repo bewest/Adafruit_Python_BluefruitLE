@@ -7,6 +7,7 @@ import uuid
 
 # import dbus
 import pydbus
+from gi.repository import GLib
 
 from ..config import TIMEOUT_SEC
 from ..interfaces import Device
@@ -54,8 +55,10 @@ class BluezDevice(Device):
         """Pair with device.  If not paired within the specified timeout
         then an exception is thrown.
         """
+        def _pair ( ):
+          self._device.Pair(reply_handler=self.pair_reply, error_handler=self.pair_error, timeout=timeout_sec)
         self._paired.clear()
-        self._device.Pair(reply_handler=self.pair_reply, error_handler=self.pair_error, timeout=timeout_sec)
+        GLib.idle_add(_pair)
         if not self._paired.wait(timeout_sec):
             raise RuntimeError('Exceeded timeout waiting to Pair with device!')
     def pair_error (self, error):
@@ -89,9 +92,14 @@ class BluezDevice(Device):
         """Disconnect from the device.  If not disconnected within the specified
         timeout then an exception is thrown.
         """
-        self._disconnected.clear()
-        ret = self._device.Disconnect()
-        print ret, "disconnected?", self._device, self._device
+        def _disconnect ( ):
+          print "calling disconnect"
+          ret = self._device.Disconnect()
+          print ret, "disconnected?", self._device
+          time.sleep(0)
+        # self._disconnected.clear()
+        GLib.idle_add(_disconnect)
+        # ret = self._device.Disconnect()
         if not self._disconnected.wait(timeout_sec):
             raise RuntimeError('Exceeded timeout waiting to disconnect from device!')
 
